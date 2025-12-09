@@ -53,8 +53,8 @@ export function SearchIndexer() {
           
           const embedding = await EmbeddingService.generateEmbedding(textToEmbed)
           
-          await supabase
-            .from('inventory_items')
+          await (supabase
+            .from('inventory_items') as any)
             .update({ embedding: embedding })
             .eq('id', item.id)
 
