@@ -37,7 +37,7 @@ export function SearchIndexer() {
         .from('inventory_items')
         .select('id, name, description, category_id, location_id')
         .is('embedding', null)
-        .limit(20)
+        .limit(20) as any
 
       if (!items) return
 
