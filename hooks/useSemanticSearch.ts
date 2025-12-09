@@ -75,6 +75,7 @@ export function useSemanticSearch() {
         .from('inventory_items')
         .select('*')
         .in('id', allIds)
+        .returns<InventoryItem[]>()
 
       if (fetchError) throw fetchError
 
