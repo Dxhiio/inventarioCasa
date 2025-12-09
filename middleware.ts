@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // 1. Create Supabase Client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -26,21 +27,38 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // 2. Refresh Session (Critical for Auth Guard)
+  // This explicitly checks with Supabase Auth if the session is valid
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protected Routes Logic
-  // If user is NOT logged in and trying to access a protected route
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth')) {
-     return NextResponse.redirect(new URL('/login', request.url))
+  const path = request.nextUrl.pathname
+
+  // 3. Define Protected Routes
+  // Allow strict exceptions: login handling, auth callbacks, and static assets
+  const isPublicRoute = 
+    path.startsWith('/login') || 
+    path.startsWith('/auth') || 
+    path === '/auth/callback'
+
+  // 4. Redirect Logic
+  
+  // Case A: Unauthenticated User trying to access Protected Route
+  if (!user && !isPublicRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  // If user IS logged in and trying to access login
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/', request.url))
+  // Case B: Authenticated User trying to access Login page
+  if (user && path.startsWith('/login')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
   }
 
+  // 5. Return Response
   return response
 }
 
@@ -51,8 +69,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * - public files with extensions (images, etc)
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
