@@ -78,7 +78,7 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
         .select('id')
         .eq('user_id', userId)
         .ilike('name', normalizedName)
-        .maybeSingle()
+        .maybeSingle() as any
       
       // .single() throws error if no rows found usually unless .maybeSingle() is used.
       // Let's use .maybeSingle() if available or catch error.
