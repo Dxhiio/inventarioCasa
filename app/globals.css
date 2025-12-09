@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Soft Semantic Palette Definition */
+  --color-semantic-red-bg: var(--semantic-red-bg);
+  --color-semantic-red-text: var(--semantic-red-text);
+  
+  --color-semantic-yellow-bg: var(--semantic-yellow-bg);
+  --color-semantic-yellow-text: var(--semantic-yellow-text);
+  
+  --color-semantic-green-bg: var(--semantic-green-bg);
+  --color-semantic-green-text: var(--semantic-green-text);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-in: animate-in 0.3s ease-out;
+  --animate-out: animate-out 0.3s ease-in;
+
+  @keyframes accordion-down {
+    from { height: 0 }
+    to { height: var(--radix-accordion-content-height) }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height) }
+    to { height: 0 }
+  }
+}
+
+/* Base Styles */
+:root {
+  /* Light Mode (Soft Pastels & Clean White) */
+  --background: oklch(0.99 0.002 240); /* Slightly warmer white */
+  --foreground: oklch(0.2 0.02 260); /* Soft dark gray */
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 260);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 260);
+
+  --primary: oklch(0.55 0.15 260); /* Soft Indigo */
+  --primary-foreground: oklch(0.99 0.002 240);
+
+  --secondary: oklch(0.96 0.005 260);
+  --secondary-foreground: oklch(0.2 0.02 260);
+
+  --muted: oklch(0.96 0.005 260);
+  --muted-foreground: oklch(0.55 0.02 260);
+
+  --accent: oklch(0.96 0.005 260);
+  --accent-foreground: oklch(0.2 0.02 260);
+
+  --destructive: oklch(0.65 0.15 20); /* Softer red */
+  --destructive-foreground: oklch(0.99 0.002 240);
+
+  --border: oklch(0.92 0.01 260);
+  --input: oklch(0.92 0.01 260);
+  --ring: oklch(0.55 0.15 260);
+
+  --radius: 0.75rem;
+
+  /* Semantic Soft Colors (Pastels) */
+  --semantic-red-bg: oklch(0.96 0.03 20); /* Light soft red */
+  --semantic-red-text: oklch(0.5 0.15 20); /* Darker soft red */
+
+  --semantic-yellow-bg: oklch(0.97 0.04 85); /* Light soft amber */
+  --semantic-yellow-text: oklch(0.45 0.12 85); /* Darker soft amber */
+
+  --semantic-green-bg: oklch(0.96 0.04 160); /* Light soft mint */
+  --semantic-green-text: oklch(0.4 0.1 160); /* Darker soft mint */
+}
+
+@utility dark {
+  :root {
+    /* Dark Mode (Deep Navy & Soft Accents) */
+    --background: oklch(0.15 0.02 260);
+    --foreground: oklch(0.96 0.01 260);
+
+    --card: oklch(0.18 0.02 260);
+    --card-foreground: oklch(0.96 0.01 260);
+
+    --popover: oklch(0.18 0.02 260);
+    --popover-foreground: oklch(0.96 0.01 260);
+
+    --primary: oklch(0.65 0.15 260); /* Lighter Indigo for Dark Mode */
+    --primary-foreground: oklch(0.98 0 0);
+
+    --secondary: oklch(0.22 0.03 260);
+    --secondary-foreground: oklch(0.96 0.01 260);
+
+    --muted: oklch(0.22 0.03 260);
+    --muted-foreground: oklch(0.7 0.02 260);
+
+    --accent: oklch(0.22 0.03 260);
+    --accent-foreground: oklch(0.96 0.01 260);
+
+    --destructive: oklch(0.5 0.15 20);
+    --destructive-foreground: oklch(0.96 0.01 260);
+
+    --border: oklch(0.25 0.02 260);
+    --input: oklch(0.25 0.02 260);
+    --ring: oklch(0.65 0.15 260);
+
+     /* Semantic Soft Colors (Dark Mode Muted) */
+    --semantic-red-bg: oklch(0.25 0.05 20);
+    --semantic-red-text: oklch(0.9 0.05 20);
+
+    --semantic-yellow-bg: oklch(0.25 0.05 85);
+    --semantic-yellow-text: oklch(0.9 0.05 85);
+
+    --semantic-green-bg: oklch(0.25 0.05 160);
+    --semantic-green-text: oklch(0.9 0.05 160);
+  }
+}
+.dark {
+    /* Dark Mode (Deep Navy & Soft Accents) */
+    --background: oklch(0.15 0.02 260);
+    --foreground: oklch(0.96 0.01 260);
+
+    --card: oklch(0.18 0.02 260);
+    --card-foreground: oklch(0.96 0.01 260);
+
+    --popover: oklch(0.18 0.02 260);
+    --popover-foreground: oklch(0.96 0.01 260);
+
+    --primary: oklch(0.65 0.15 260); /* Lighter Indigo for Dark Mode */
+    --primary-foreground: oklch(0.98 0 0);
+
+    --secondary: oklch(0.22 0.03 260);
+    --secondary-foreground: oklch(0.96 0.01 260);
+
+    --muted: oklch(0.22 0.03 260);
+    --muted-foreground: oklch(0.7 0.02 260);
+
+    --accent: oklch(0.22 0.03 260);
+    --accent-foreground: oklch(0.96 0.01 260);
+
+    --destructive: oklch(0.8 0.1 20); /* Brighter red for visibility in dark */
+    --destructive-foreground: oklch(0.96 0.01 260);
+
+    --border: oklch(0.25 0.02 260);
+    --input: oklch(0.25 0.02 260);
+    --ring: oklch(0.65 0.15 260);
+
+     /* Semantic Soft Colors (Dark Mode Muted) */
+    --semantic-red-bg: oklch(0.25 0.05 20);
+    --semantic-red-text: oklch(0.9 0.05 20);
+
+    --semantic-yellow-bg: oklch(0.25 0.05 85);
+    --semantic-yellow-text: oklch(0.9 0.05 85);
+
+    --semantic-green-bg: oklch(0.25 0.05 160);
+    --semantic-green-text: oklch(0.9 0.05 160);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+  }
+}
+
+/* Soft Utilities */
+@utility glass-card {
+  @apply bg-card border border-border shadow-sm transition-all duration-200 hover:border-primary/20 hover:shadow-md;
+}
+
+@utility bg-soft-red {
+  background-color: var(--semantic-red-bg);
+  color: var(--semantic-red-text);
+}
+@utility text-soft-red {
+  color: var(--semantic-red-text);
+}
+
+@utility bg-soft-yellow {
+  background-color: var(--semantic-yellow-bg);
+  color: var(--semantic-yellow-text);
+}
+@utility text-soft-yellow {
+  color: var(--semantic-yellow-text);
+}
+
+@utility bg-soft-green {
+  background-color: var(--semantic-green-bg);
+  color: var(--semantic-green-text);
+}
+@utility text-soft-green {
+  color: var(--semantic-green-text);
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
