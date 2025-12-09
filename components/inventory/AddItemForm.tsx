@@ -106,7 +106,7 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
         .select('id')
         .eq('user_id', userId)
         .ilike('name', normalizedName)
-        .maybeSingle()
+        .maybeSingle() as any
       
        if (existing) {
          finalLocationId = existing.id
