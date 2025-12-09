@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
+import { UserMenu } from "@/components/dashboard/UserMenu"
 
 export function DashboardHeader() {
   return (
@@ -18,6 +19,7 @@ export function DashboardHeader() {
       </div>
       <div className="flex items-center gap-3">
         <ModeToggle />
+        <UserMenu />
         <Link href="/inventory/add">
            <Button className="rounded-full h-11 w-11 lg:h-14 lg:w-14 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-95">
             <Plus className="h-5 w-5 lg:h-7 lg:w-7" />
