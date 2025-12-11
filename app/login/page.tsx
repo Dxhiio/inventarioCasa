@@ -36,6 +36,7 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
+        router.refresh()
         router.push('/') // Redirect to home/dashboard
       } else {
         // --- REGISTER FLOW ---
