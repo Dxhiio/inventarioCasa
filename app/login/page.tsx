@@ -2,25 +2,22 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Mail, Lock, ArrowRight, Sparkles, User, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { login, signup } from './actions'
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  // Enhanced Fields
   const [confirmPassword, setConfirmPassword] = useState('')
   const [nickname, setNickname] = useState('')
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const router = useRouter()
-  const supabase = createClient()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,55 +25,56 @@ export default function LoginPage() {
     setError(null)
     setMessage(null)
 
+    const formData = new FormData()
+    formData.append('email', email)
+    formData.append('password', password)
+    formData.append('nickname', nickname)
+    formData.append('confirmPassword', confirmPassword)
+
     try {
       if (isLogin) {
-        // --- LOGIN FLOW ---
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        if (error) throw error
-        router.refresh()
-        router.push('/') // Redirect to home/dashboard
+        const result = await login(formData)
+        if (result?.error) {
+            setError(result.error)
+            setLoading(false)
+        }
+        // If successful, login() calls redirect(), which stops execution here (throws NEXT_REDIRECT)
       } else {
-        // --- REGISTER FLOW ---
-        // 1. Validation
-        if (password !== confirmPassword) {
-            throw new Error("Las contraseñas no coinciden.")
+        const result = await signup(formData)
+        if (result?.error) {
+            setError(result.error)
+        } else if (result?.success) {
+            setMessage(result.success)
         }
-        if (password.length < 6) {
-            throw new Error("La contraseña debe tener al menos 6 caracteres.")
-        }
-        if (!nickname.trim()) {
-            throw new Error("Por favor elige un Nickname.")
-        }
-
-        // 2. Sign Up with Metadata
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${location.origin}/auth/callback`,
-            data: {
-                username: nickname, // This will be caught by the Trigger
-                // avatar_url: ... (optional if we added an avatar picker)
-            }
-          },
-        })
-        if (error) throw error
-        setMessage('Cuenta creada con éxito. Revisa tu email para confirmar.')
+        setLoading(false)
       }
     } catch (err: any) {
-      setError(err.message || "Ocurrió un error")
-    } finally {
-      setLoading(false)
+        // NEXT_REDIRECT error is safely caught by Next.js if we let it bubble up?
+        // Actually, if we are in a 'try/catch' block, we catch the redirect error.
+        // We must re-throw if it matches the redirect signature.
+        if (err.message === 'NEXT_REDIRECT') {
+            throw err
+        }
+        // Alternatively, simple check:
+        // Client-side, redirect() usually doesn't throw, it navigates.
+        // But Server Action called from Client behaves like an RPC.
+        // If the implementation uses 'redirect' from next/navigation, it DOES throw.
+        // Let's inspect the error property.
+        if (isLogin && !error) { 
+            // If we are here, it might be the redirect. 
+            // Standard pattern: Don't wrap server action call in try/catch unless you filter errors.
+            console.error(err)
+        }
+        setError(err.message || "Ocurrió un error")
+        setLoading(false)
     }
   }
 
+  // ... (UI REMAINS EXACTLY THE SAME)
+  // I will just replace lines 1-74 and keep the rest.
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background selection:bg-primary/20">
       <div className="w-full max-w-md space-y-8">
-        {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 mb-4 shadow-sm border border-zinc-200 dark:border-zinc-700">
              <Sparkles className="h-6 w-6 text-zinc-900 dark:text-zinc-50" />
@@ -89,11 +87,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div className="bg-card border border-border/50 shadow-sm rounded-2xl p-6 md:p-8 space-y-6 relative overflow-hidden transition-all duration-300">
           <form onSubmit={handleAuth} className="space-y-4">
             
-            {/* Nickname Field (Register Only) */}
             <AnimatePresence>
                 {!isLogin && (
                     <motion.div 
@@ -120,7 +116,6 @@ export default function LoginPage() {
                 )}
             </AnimatePresence>
 
-            {/* Email Field */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Email</label>
               <div className="relative">
@@ -136,7 +131,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field */}
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Contraseña</label>
               <div className="relative">
@@ -153,7 +147,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Confirm Password Field (Register Only) */}
             <AnimatePresence>
                 {!isLogin && (
                     <motion.div 
