@@ -2,11 +2,16 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, ShoppingBag } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
 import { UserMenu } from "@/components/dashboard/UserMenu"
 
+import { useState } from "react"
+import { ShoppingListModal } from "@/components/shopping-list/ShoppingListModal"
+
 export function DashboardHeader() {
+  const [isShoppingListOpen, setIsShoppingListOpen] = useState(false)
+
   return (
     <header className="flex justify-between items-end mb-4 lg:mb-8">
       <div>
@@ -19,7 +24,21 @@ export function DashboardHeader() {
       </div>
       <div className="flex items-center gap-3">
         <ModeToggle />
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="rounded-full h-11 w-11 lg:h-11 lg:w-11"
+          onClick={() => setIsShoppingListOpen(true)}
+        >
+          <ShoppingBag className="h-5 w-5" />
+        </Button>
         <UserMenu />
+        
+        <ShoppingListModal 
+          isOpen={isShoppingListOpen}
+          onClose={() => setIsShoppingListOpen(false)}
+        />
+
         <Link href="/inventory/add">
            <Button className="rounded-full h-11 w-11 lg:h-14 lg:w-14 bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-transform active:scale-95">
             <Plus className="h-5 w-5 lg:h-7 lg:w-7" />
