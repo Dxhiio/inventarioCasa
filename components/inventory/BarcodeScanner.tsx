@@ -74,7 +74,13 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                 qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0
             },
-            (decodedText) => onScan(decodedText),
+            (decodedText) => {
+                 if (isProcessingRef.current) {
+                     console.log("Ignored scan during visual processing")
+                     return
+                 }
+                 onScan(decodedText)
+            },
             (err) => { /* ignore */ }
         )
         
@@ -110,11 +116,13 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
   // Visual / OCR Search
   const [isProcessingImg, setIsProcessingImg] = useState(false)
+  const isProcessingRef = useRef(false) // [NEW] Synchronous ref for callback
 
   const handleVisualScan = async () => {
      if (!scannerRef.current) return
      try {
        setIsProcessingImg(true)
+       isProcessingRef.current = true // Block normal scans
        
        // Robust Video Selector
        // html5-qrcode typically appends a <video> element inside the container ID
@@ -142,6 +150,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
            canvas.toBlob(async (blob) => {
              if (!blob) {
                  setIsProcessingImg(false)
+                 isProcessingRef.current = false
                  return
              }
              
@@ -192,6 +201,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                               if (textResults && textResults.length > 0) {
                                   onScan("name:" + textResults[0].name, base64data)
                                   setIsProcessingImg(false)
+                                  isProcessingRef.current = false
                                   return
                               }
                           }
@@ -206,6 +216,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                      onScan("name:Objeto desconocido", base64data)
                  }
                  setIsProcessingImg(false)
+                 isProcessingRef.current = false
              }
           }, 'image/jpeg', 0.8)
        }
@@ -213,6 +224,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         console.error(e)
         addLog("Error visual scan: " + (e?.message || e))
         setIsProcessingImg(false)
+        isProcessingRef.current = false
       }
   }
 
