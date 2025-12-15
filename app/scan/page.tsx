@@ -1,8 +1,26 @@
+'use client'
+
+import { BarcodeScanner } from "@/components/inventory/BarcodeScanner"
+import { useRouter } from "next/navigation"
+
 export default function ScanPage() {
+  const router = useRouter()
+
+  const handleScan = (code: string) => {
+    // Redirect to add item page with the scanned barcode
+    router.push(`/inventory/add?barcode=${encodeURIComponent(code)}`)
+  }
+
+  const handleClose = () => {
+    router.back()
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-      <h1 className="text-2xl font-bold">Escáner de Productos</h1>
-      <p className="text-muted-foreground">Próximamente: Escanea códigos de barras para agregar productos.</p>
+    <div className="h-[calc(100vh-5rem)] flex flex-col">
+       <BarcodeScanner 
+         onScan={handleScan} 
+         onClose={handleClose} 
+       />
     </div>
   )
 }

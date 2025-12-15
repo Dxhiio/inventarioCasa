@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useInventory } from '@/hooks/useInventory'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Camera, Upload, Lock, Globe, Calendar, MapPin, Tag, X } from 'lucide-react'
 import imageCompression from 'browser-image-compression'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { v4 as uuidv4 } from 'uuid'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -45,7 +45,16 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
   const [showScanner, setShowScanner] = useState(false)
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialBarcode = searchParams.get('barcode')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Auto-scan from URL
+  useEffect(() => {
+    if (initialBarcode) {
+      handleScan(initialBarcode)
+    }
+  }, [initialBarcode])
   const supabase = createClient()
 
   // ... (handleImageChange and handleCreateAuxiliaryData remain same)
