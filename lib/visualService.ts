@@ -6,7 +6,8 @@ env.useBrowserCache = true;
 
 class VisualServiceClass {
   private classifier: any = null;
-  private modelName = 'Xenova/mobilenet_v4_e12_050_224'; // Fast, lightweight
+  // Switching to standard V3 for maximum compatibility
+  private modelName = 'Xenova/mobilenet_v3_small_1.0_224_quantized';
 
   async initialize() {
     if (!this.classifier) {
@@ -14,9 +15,8 @@ class VisualServiceClass {
       try {
         this.classifier = await pipeline('image-classification', this.modelName);
       } catch (e) {
-        console.error("Failed to load primary model, trying fallback...", e);
-        // Fallback to older but reliable mobilenet
-        this.classifier = await pipeline('image-classification', 'Xenova/mobilenet_v3_small_1.0_224_quantized');
+        console.error("Failed to load model", e);
+        throw e;
       }
     }
   }

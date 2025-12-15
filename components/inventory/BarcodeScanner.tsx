@@ -180,14 +180,13 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                  // Construct Search Query
                  // Priority: "Object Label + Text"
                  let query = ""
+                 const rawTags = tags.map((t: any) => t).join(", ") // Debug
+
                  if (tagString && text) query = `${tagString} ${text}`
                  else if (text) query = text
                  else if (tagString) query = tagString
                  
                  if (query) {
-                     // Translate known tags to Spanish? (Optional enhancement)
-                     // For now, allow english tags, OpenFoodFacts search handles it decently.
-                     
                      addLog(`Buscando: "${query}"`)
                      const results = await ProductService.searchProductByName(query)
                      
@@ -195,14 +194,14 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                           addLog("Producto encontrado!")
                           setScanResult({ name: "name:" + results[0].name, image: base64data })
                      } else {
-                          // Try searching just text if combined failed?
+                          // Try searching just text
                           if (text && tagString) {
                               addLog("Reintentando solo texto...")
                               const textResults = await ProductService.searchProductByName(text)
                               if (textResults && textResults.length > 0) {
                                   setScanResult({ name: "name:" + textResults[0].name, image: base64data })
                                   setIsProcessingImg(false)
-                                  return // Keep lock until user decides
+                                  return 
                               }
                           }
 
@@ -210,8 +209,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                           setScanResult({ name: "name:" + query, image: base64data })
                      }
                  } else {
-                     addLog("No se detectó nada legible.")
-                     setScanResult({ name: "name:Objeto desconocido", image: base64data })
+                     addLog("No match. Raw: " + rawTags)
+                     // Show exactly what (if anything) was seen, or "Nothing detected"
+                     const displayText = rawTags ? ("Tags: " + rawTags) : "No se detectó nada (Texto/Objeto)"
+                     setScanResult({ name: "name:" + displayText, image: base64data })
                  }
                  setIsProcessingImg(false)
                  // Do NOT unlock isProcessingRef here. Unlock it only when user Closes Review or Confirms.
