@@ -59,61 +59,58 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
 
   // ... (handleImageChange and handleCreateAuxiliaryData remain same)
 
-  const handleScan = async (code: string) => {
+  const handleScan = async (code: string, imageData?: string) => {
     setShowScanner(false)
     setLoading(true)
+    
+    // Reset fields for new scan
+    setPreviewUrl(null)
+    setImageFile(null)
+    setName('')
+    
     try {
+      // 1. Determine Image Source (Direct arg > SessionStorage)
+      let finalImage = imageData
+      if (!finalImage) {
+          finalImage = sessionStorage.getItem('scanned_image_temp') || undefined
+          sessionStorage.removeItem('scanned_image_temp') // Cleanup immediately
+      }
+
+      // 2. Process Image if exists
+      if (finalImage) {
+         setPreviewUrl(finalImage)
+         try {
+            const res = await fetch(finalImage)
+            const blob = await res.blob()
+            const file = new File([blob], "lens_capture.jpg", { type: "image/jpeg" })
+            setImageFile(file)
+         } catch (e) { console.error("Error converting cached img", e) }
+      }
+
+      // 3. Process Code / Text
       // Lens Scan / Text Logic
       if (code.startsWith('name:')) {
           const nameQuery = code.substring(5)
           console.log("Lens Scan Name:", nameQuery)
           setName(nameQuery)
-          
-          // Check for passed image
-          const cachedImg = sessionStorage.getItem('scanned_image_temp')
-          if (cachedImg) {
-             setPreviewUrl(cachedImg)
-             // Convert base64 to File for upload
-             try {
-                const res = await fetch(cachedImg)
-                const blob = await res.blob()
-                const file = new File([blob], "lens_capture.jpg", { type: "image/jpeg" })
-                setImageFile(file)
-             } catch (e) { console.error("Error converting cached img", e) }
-             sessionStorage.removeItem('scanned_image_temp') // Cleanup
-          }
-
       } else if (code.startsWith('text:')) {
           const rawText = code.substring(5)
           console.log("Lens Scan Text:", rawText)
           setName(rawText)
-          
-           // Check for passed image
-          const cachedImg = sessionStorage.getItem('scanned_image_temp')
-          if (cachedImg) {
-             setPreviewUrl(cachedImg)
-             try {
-                const res = await fetch(cachedImg)
-                const blob = await res.blob()
-                const file = new File([blob], "lens_capture.jpg", { type: "image/jpeg" })
-                setImageFile(file)
-             } catch (e) { console.error("Error converting cached img", e) }
-             sessionStorage.removeItem('scanned_image_temp')
-          }
       } else {
           // Barcode Logic
-          // If code is numeric and short/long, treat as barcode.
-          // If it's just arbitrary, maybe fallback to name?
           if (/^\d+$/.test(code) && code.length > 3) {
              const product = await ProductService.searchProductByBarcode(code)
              if (product) {
                setName(product.name)
-               if (product.image_url) setPreviewUrl(product.image_url)
+               // Only overide image if we didn't capture one manually
+               if (product.image_url && !finalImage) {
+                   setPreviewUrl(product.image_url)
+               }
              } else {
                alert(`Producto no encontrado (Barcode: ${code})`)
              }
           } else {
-             // Fallback for weird codes -> Treat as name
              setName(code)
           }
       }
