@@ -4,6 +4,7 @@ import { AddItemForm } from "@/components/inventory/AddItemForm"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { Suspense } from "react"
 
 export default function AddItemPage() {
   return (
@@ -17,7 +18,9 @@ export default function AddItemPage() {
         <h1 className="text-2xl font-bold">Nuevo Producto</h1>
       </div>
       
-      <AddItemForm />
+      <Suspense fallback={<div className="flex justify-center p-8"><span className="animate-spin">⌛</span></div>}>
+        <AddItemForm />
+      </Suspense>
     </div>
   )
 }
