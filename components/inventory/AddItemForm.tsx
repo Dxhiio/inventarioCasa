@@ -12,6 +12,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import EmbeddingService from '@/utils/embedding' // [NEW]
+import { BarcodeScanner } from './BarcodeScanner'
+import { ProductService } from '@/lib/productService'
+import { Scan, Camera as CameraIcon } from 'lucide-react'
 
 import { Database } from '@/types/supabase'
 
@@ -37,13 +40,41 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
   const [categoryId, setCategoryId] = useState<number | 'new' | null>(initialData?.category_id || null)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [locationId, setLocationId] = useState<number | 'new' | null>(initialData?.location_id || null)
+
   const [newLocationName, setNewLocationName] = useState('')
+  const [showScanner, setShowScanner] = useState(false)
 
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
   // ... (handleImageChange and handleCreateAuxiliaryData remain same)
+
+  const handleScan = async (code: string) => {
+    setShowScanner(false)
+    setLoading(true)
+    try {
+      const product = await ProductService.searchProductByBarcode(code)
+      if (product) {
+        setName(product.name)
+        if (product.image_url) {
+           setPreviewUrl(product.image_url)
+           // Convert URL to File if needed? 
+           // Currently logic uploads 'imageFile' or uses 'previewUrl' string.
+           // Ideally we should process it, but our backend logic handles 'imageUrl' variable.
+           // We just need to ensure `handleSubmit` uses `previewUrl` if `imageFile` is null.
+           // Checked handleSubmit: 'let imageUrl = previewUrl' -> correct.
+        }
+        // Attempt to map category? (Future improvement)
+      } else {
+        alert(`Producto no encontrado en la base de datos pública (Código: ${code})`)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -228,7 +259,29 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
           </div>
         )}
         <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+        
+        <div className="absolute top-2 right-2">
+           <Button 
+             type="button" 
+             variant="secondary" 
+             size="sm" 
+             className="shadow-sm opacity-90 hover:opacity-100"
+             onClick={(e) => {
+               e.stopPropagation()
+               setShowScanner(true)
+             }}
+           >
+             <Scan className="h-4 w-4 mr-2" /> Escanear
+           </Button>
+        </div>
       </div>
+      
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleScan} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
 
       <div className="space-y-4">
         {/* Name */}
