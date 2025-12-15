@@ -63,20 +63,29 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
     setShowScanner(false)
     setLoading(true)
     try {
-      const product = await ProductService.searchProductByBarcode(code)
-      if (product) {
-        setName(product.name)
-        if (product.image_url) {
-           setPreviewUrl(product.image_url)
-           // Convert URL to File if needed? 
-           // Currently logic uploads 'imageFile' or uses 'previewUrl' string.
-           // Ideally we should process it, but our backend logic handles 'imageUrl' variable.
-           // We just need to ensure `handleSubmit` uses `previewUrl` if `imageFile` is null.
-           // Checked handleSubmit: 'let imageUrl = previewUrl' -> correct.
-        }
-        // Attempt to map category? (Future improvement)
+      // Check for special prefixes from Visual Scan
+      if (code.startsWith('name:')) {
+          const nameQuery = code.substring(5)
+          setName(nameQuery) // Pre-fill name immediately? or search more?
+          // We already searched in scanner, but we can do a better search here if needed
+          // For now, assume the scanner found a good name match or use it as is
+          // Ideally we should have passed the whole object, but URL/String limits apply.
+          // Let's just set the name.
+      } else if (code.startsWith('text:')) {
+          const rawText = code.substring(5)
+          setName(rawText)
+          alert(`Texto detectado: "${rawText}". No se encontraron productos exactos, pero puedes editar el nombre.`)
       } else {
-        alert(`Producto no encontrado en la base de datos pública (Código: ${code})`)
+          // Standard Barcode Lookup
+          const product = await ProductService.searchProductByBarcode(code)
+          if (product) {
+            setName(product.name)
+            if (product.image_url) {
+               setPreviewUrl(product.image_url)
+            }
+          } else {
+            alert(`Producto no encontrado en la base de datos pública (Código: ${code})`)
+          }
       }
     } catch (e) {
       console.error(e)

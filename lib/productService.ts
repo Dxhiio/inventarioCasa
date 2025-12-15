@@ -63,5 +63,30 @@ export const ProductService = {
     }
 
     return null;
+  },
+
+  async searchProductByName(query: string): Promise<ProductInfo[] | null> {
+    try {
+      // Use OpenFoodFacts search API
+      const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1`;
+      
+      const res = await fetch(url, {
+         headers: { 'User-Agent': 'InventarioCasaApp/1.0' }
+      });
+      const data = await res.json();
+      
+      if (data.products && data.products.length > 0) {
+        return data.products.slice(0, 5).map((p: any) => ({
+            name: p.product_name_es || p.product_name || 'Desconocido',
+            image_url: p.image_url || p.image_front_url || null,
+            brands: p.brands || null,
+            categories: p.categories || null
+        }));
+      }
+      return null;
+    } catch (e) {
+      console.error("Search by name failed", e);
+      return null;
+    }
   }
 };

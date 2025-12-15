@@ -96,6 +96,80 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
      }
   }, []) // eslint-disable-line
 
+  // Visual / OCR Search
+  const [isProcessingImg, setIsProcessingImg] = useState(false)
+
+  const handleVisualScan = async () => {
+     if (!scannerRef.current) return
+     try {
+       setIsProcessingImg(true)
+       // Capture frame
+       // getHtml5QrCode is private in library usually, but we can try capturing from video element if needed
+       // Easier: use input capture if possible or the library's getState?
+       // Currently, html5-qrcode doesn't expose easy snapshot unless strictly scanning.
+       
+       // Alternative: Stop scanner and let user take a photo with standard input or keep scanner distinct?
+       // Let's use the 'onCapture' behavior pattern but implementing a manual snapshot from the active video stream.
+       const video = document.querySelector("#" + uniqueId + " video") as HTMLVideoElement
+       if (video) {
+          const canvas = document.createElement("canvas")
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+          const ctx = canvas.getContext("2d")
+          ctx?.drawImage(video, 0, 0)
+          
+          addLog("Capturing frame for OCR...")
+          
+          canvas.toBlob(async (blob) => {
+             if (!blob) {
+                 setIsProcessingImg(false)
+                 return
+             }
+             
+             // Dynamic import to avoid SSR issues with Tesseract
+             const { OCRService } = await import('@/lib/ocrService')
+             const { ProductService } = await import('@/lib/productService')
+             
+             addLog("Reading text...")
+             const text = await OCRService.recognizeText(blob)
+             
+             if (text) {
+                 addLog("Found: " + text.substring(0, 20) + "...")
+                 // Optional: Ask user to confirm or just search?
+                 // Let's search directly
+                 const results = await ProductService.searchProductByName(text)
+                 if (results && results.length > 0) {
+                      addLog("Product found via OCR!")
+                      // Use the first result's name to "scan"
+                      // Simulate a scan success
+                      onScan(results[0].name) // Passing name as code is tricky for the listener?
+                      // The listener expects a barcode usually.
+                      // But in app/scan/page.tsx, we do: router.push(...?barcode=code)
+                      // If we pass a name, valid? 
+                      // AddItemForm logic: if (initialBarcode) -> searchProductByBarcode(initialBarcode)
+                      // If 'initialBarcode' is not a barcode, searchProductByBarcode returns null (usually).
+                      
+                      // CRITICAL: We need a way to pass "Found Product Data" directly or pass the Name as a search term.
+                      // Hack: Pass a special prefix "name:QUERY"
+                      onScan("name:" + results[0].name)
+                 } else {
+                      addLog("Text found but no product match.")
+                      // If no product match, we can still pass the text to fill the name!
+                      onScan("text:" + text)
+                 }
+             } else {
+                 addLog("No readable text found.")
+             }
+             setIsProcessingImg(false)
+          }, 'image/jpeg', 0.8)
+       }
+     } catch (e) {
+        console.error(e)
+        addLog("Error visual scan: " + e)
+        setIsProcessingImg(false)
+     }
+  }
+
   const toggleTorch = async () => {
      if (!scannerRef.current) return
      try {
@@ -149,15 +223,33 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                <X className="h-6 w-6" />
             </Button>
             {isScanning && (
-                <Button variant="ghost" size="icon" className="text-white bg-black/50 rounded-full h-12 w-12" onClick={toggleTorch}>
-                {torchOn ? <Zap className="h-6 w-6 text-yellow-500" /> : <ZapOff className="h-6 w-6" />}
-                </Button>
+                <div className="flex flex-col gap-4">
+                    <Button variant="ghost" size="icon" className="text-white bg-black/50 rounded-full h-12 w-12" onClick={toggleTorch}>
+                        {torchOn ? <Zap className="h-6 w-6 text-yellow-500" /> : <ZapOff className="h-6 w-6" />}
+                    </Button>
+                </div>
             )}
          </div>
+         
+         {/* Visual Scan Button (Bottom Center) */}
+         {isScanning && (
+            <div className="absolute bottom-8 left-0 right-0 z-50 flex justify-center">
+                 <Button 
+                   onClick={handleVisualScan} 
+                   disabled={isProcessingImg}
+                   className="rounded-full h-16 w-16 bg-white border-4 border-stone-300 shadow-xl flex items-center justify-center hover:bg-gray-100"
+                 >
+                    {isProcessingImg ? <div className="animate-spin text-black">⌛</div> : <Camera className="h-8 w-8 text-black" />}
+                 </Button>
+                 <p className="absolute -bottom-6 text-xs text-white/80 font-medium drop-shadow-md">
+                    {isProcessingImg ? "Analizando..." : "Foto / OCR"}
+                 </p>
+            </div>
+         )}
        </div>
        
        <div className="p-6 bg-stone-900 text-white pb-10">
-          <p className="text-center text-sm text-stone-400">Apunta el código de barras</p>
+          <p className="text-center text-sm text-stone-400">Escanea un código o toma foto al texto</p>
        </div>
     </div>
   )
