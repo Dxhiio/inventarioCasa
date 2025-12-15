@@ -26,30 +26,47 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const addLog = (msg: string) => setLogs(prev => [...prev.slice(-4), msg])
 
   const startScanner = async () => {
+      // WaitForElement helper
+      const waitForElement = (id: string, retries = 10, delay = 300): Promise<HTMLElement | null> => {
+          return new Promise((resolve) => {
+              const check = (count: number) => {
+                  const el = document.getElementById(id)
+                  if (el) return resolve(el)
+                  if (count <= 0) return resolve(null)
+                  setTimeout(() => check(count - 1), delay)
+              }
+              check(retries)
+          })
+      }
+
       if (isScanning) return
-      setInitStatus("Iniciando...")
+      setInitStatus("Buscando cámara...")
       setError(null)
-      addLog("Start initiated (" + uniqueId + ")...")
       
       try {
         const formattedId = uniqueId
         
-        // 1. Initialize
-        addLog("Creating instance...")
-        if (!document.getElementById(formattedId)) {
-             throw new Error("Scanner container not found in DOM")
+        // 1. Wait for DOM (Critical for Modals)
+        const container = await waitForElement(formattedId)
+        if (!container) {
+             throw new Error("No se pudo iniciar la cámara (DOM Error). Intenta abrirlo de nuevo.")
         }
-
+        
+        // 2. Initialize
+        addLog("Iniciando motor...")
         if (scannerRef.current) {
              try { await scannerRef.current.stop() } catch (e) {}
              scannerRef.current = null
         }
+        
+        // Double check container is empty/clean to avoid "Element already contains..."
+        // html5-qrcode demands exact handling, but usually overwrites if new instance?
+        // Actually it throws if element is not empty usually? No, but good practice to allow library to handle it.
+        
         const html5QrCode = new Html5Qrcode(formattedId)
         scannerRef.current = html5QrCode
 
-        // 2. Start directly (skip getCameras to avoid permission race conditions/bugs)
-        addLog("Calling start() with native constraints...")
-        
+        // 3. Start
         await html5QrCode.start(
             { facingMode: "environment" },
             { 
@@ -57,15 +74,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                 qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0
             },
-            (decodedText) => {
-               onScan(decodedText)
-            },
-            (err) => { 
-                // ignore parse errors, too noisy
-            }
+            (decodedText) => onScan(decodedText),
+            (err) => { /* ignore */ }
         )
         
-        addLog("Camera started successfully!")
         setIsScanning(true)
         setInitStatus("")
 
@@ -82,14 +94,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   // Auto-start effort on mount
   useEffect(() => {
      let mounted = true
-     addLog("Component mounted")
-     
+     // Small delay to allow react render, then trigger start logic which has its own polling
      const timer = setTimeout(() => {
-        if (mounted) {
-            addLog("Auto-starting...")
-            startScanner()
-        }
-     }, 500)
+        if (mounted) startScanner()
+     }, 100)
      
      return () => {
          mounted = false
@@ -107,14 +115,21 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
      if (!scannerRef.current) return
      try {
        setIsProcessingImg(true)
-       // Capture frame
-       // getHtml5QrCode is private in library usually, but we can try capturing from video element if needed
-       // Easier: use input capture if possible or the library's getState?
-       // Currently, html5-qrcode doesn't expose easy snapshot unless strictly scanning.
        
-       // Alternative: Stop scanner and let user take a photo with standard input or keep scanner distinct?
-       // Let's use the 'onCapture' behavior pattern but implementing a manual snapshot from the active video stream.
-       const video = document.querySelector("#" + uniqueId + " video") as HTMLVideoElement
+       // Robust Video Selector
+       // html5-qrcode typically appends a <video> element inside the container ID
+       let video = document.getElementById(uniqueId)?.querySelector("video") as HTMLVideoElement
+       
+       // Fallback: If not found immediately inside, try looking for any video in standard html5-qrcode classes?
+       if (!video) {
+           // Maybe the library wraps it in other divs
+           const container = document.getElementById(uniqueId)
+           if (container) {
+               const videos = container.getElementsByTagName("video")
+               if (videos.length > 0) video = videos[0]
+           }
+       }
+
        if (video) {
           const canvas = document.createElement("canvas")
           canvas.width = video.videoWidth
