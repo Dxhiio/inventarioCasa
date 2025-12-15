@@ -33,9 +33,9 @@ class VisualServiceClass {
       console.log("Visual Config:", output);
 
       return output
-        .filter((res: any) => res.score > 0.25) // Filter low confidence
-        .map((res: any) => res.label.split(',')[0]) // Take first synonym (e.g. 'mouse, computer mouse' -> 'mouse')
-        .slice(0, 2); // Top 2 tags
+        .filter((res: any) => res.score > 0.1) // Filter low confidence (lowered to 10%)
+        .map((res: any) => res.label.split(',')[0]) // Take first synonym
+        .slice(0, 5); // Top 5 tags
         
     } catch (error) {
       console.error("Classification error:", error);
