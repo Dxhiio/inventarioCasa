@@ -15,56 +15,48 @@ export function BarcodeScanner({ onScan, onClose, onCapture }: BarcodeScannerPro
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const [isScanning, setIsScanning] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
-  // const [cameras, setCameras] = useState<any[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [initStatus, setInitStatus] = useState("Iniciando cámara...")
 
   useEffect(() => {
     const startScanner = async () => {
       try {
-        // Use a slight delay to ensure container is ready
-        setTimeout(async () => {
-          const formattedId = "reader"
-          
-          // Cleanup existing if any (react strict mode double mount)
-          if (scannerRef.current) {
-             try { await scannerRef.current.stop() } catch (e) {}
-             scannerRef.current = null
-          }
+        await new Promise(r => setTimeout(r, 100))
+        
+        const formattedId = "reader"
+        if (scannerRef.current) {
+            try { await scannerRef.current.stop() } catch (e) {}
+        }
 
-          const html5QrCode = new Html5Qrcode(formattedId)
-          scannerRef.current = html5QrCode
+        const html5QrCode = new Html5Qrcode(formattedId)
+        scannerRef.current = html5QrCode
 
-          const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-            formatsToSupport: [ 
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.QR_CODE 
-            ]
-          }
+        try {
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                },
+                (decodedText) => {
+                   onScan(decodedText)
+                },
+                (errorMessage) => {
+                  // ignore frame parse errors
+                }
+            )
+            setInitStatus("")
+            setIsScanning(true)
+        } catch (startError: any) {
+            console.error("Start failed", startError)
+            setError(startError?.message || "No se pudo iniciar la cámara. Verifica permisos.")
+            setInitStatus("")
+        }
 
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            (decodedText) => {
-               // Success
-               onScan(decodedText)
-               // Stop scanning on first success? Or let parent decide. 
-               // usually better to wait for parent to close or pause.
-            },
-            (errorMessage) => {
-              // Parse error, ignore common ones
-            }
-          )
-          
-          setIsScanning(true)
-        }, 100)
-
-      } catch (err) {
-        console.error("Error starting scanner", err)
+      } catch (err: any) {
+        console.error("Error setting up scanner", err)
+        setError("Error inicializando el escáner.")
       }
     }
 
@@ -90,27 +82,40 @@ export function BarcodeScanner({ onScan, onClose, onCapture }: BarcodeScannerPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
        <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
          <div id="reader" className="w-full h-full max-w-lg mx-auto"></div>
          
+         {/* Status / Error Overlay */}
+         {!isScanning && !error && (
+             <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10 text-white">
+                 <p>{initStatus}</p>
+             </div>
+         )}
+         
+         {error && (
+             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 text-white p-6 text-center">
+                 <p className="text-red-400 font-bold mb-2">Error</p>
+                 <p className="text-sm mb-6">{error}</p>
+                 <Button onClick={onClose} variant="secondary">Cerrar</Button>
+             </div>
+         )}
+         
          {/* Overlay Guide or Controls */}
-         <div className="absolute top-4 right-4 flex flex-col gap-4">
+         <div className="absolute top-4 right-4 flex flex-col gap-4 z-30">
             <Button variant="ghost" size="icon" className="text-white bg-black/50 rounded-full h-12 w-12" onClick={onClose}>
                <X className="h-6 w-6" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white bg-black/50 rounded-full h-12 w-12" onClick={toggleTorch}>
-               {torchOn ? <Zap className="h-6 w-6 text-yellow-500" /> : <ZapOff className="h-6 w-6" />}
-            </Button>
+            {isScanning && (
+                <Button variant="ghost" size="icon" className="text-white bg-black/50 rounded-full h-12 w-12" onClick={toggleTorch}>
+                {torchOn ? <Zap className="h-6 w-6 text-yellow-500" /> : <ZapOff className="h-6 w-6" />}
+                </Button>
+            )}
          </div>
        </div>
        
        <div className="p-6 bg-stone-900 text-white pb-10">
           <p className="text-center text-sm text-stone-400 mb-4">Apunta el código de barras a la cámara</p>
-          {/* Fallback Manual Capture if scanner fails or user just wants a photo */}
-          {/* Note: Html5Qrcode doesn't easily export the frame blob without canvas manip. 
-              For now, we just rely on scanning. 
-          */}
        </div>
     </div>
   )
