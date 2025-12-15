@@ -116,7 +116,8 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
   // Visual / OCR Search
   const [isProcessingImg, setIsProcessingImg] = useState(false)
-  const isProcessingRef = useRef(false) // [NEW] Synchronous ref for callback
+  const isProcessingRef = useRef(false) // Synchronous ref for callback
+  const [scanResult, setScanResult] = useState<{name: string, image: string} | null>(null)
 
   const handleVisualScan = async () => {
      if (!scannerRef.current) return
@@ -192,31 +193,28 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                      
                      if (results && results.length > 0) {
                           addLog("Producto encontrado!")
-                          onScan("name:" + results[0].name, base64data)
+                          setScanResult({ name: "name:" + results[0].name, image: base64data })
                      } else {
                           // Try searching just text if combined failed?
                           if (text && tagString) {
                               addLog("Reintentando solo texto...")
                               const textResults = await ProductService.searchProductByName(text)
                               if (textResults && textResults.length > 0) {
-                                  onScan("name:" + textResults[0].name, base64data)
+                                  setScanResult({ name: "name:" + textResults[0].name, image: base64data })
                                   setIsProcessingImg(false)
-                                  isProcessingRef.current = false
-                                  return
+                                  return // Keep lock until user decides
                               }
                           }
 
                           addLog("No match. Usando datos crudos.")
-                          // Ensure we pass the constructed query as the name so user sees "Mouse Perfect Choice"
-                          onScan("name:" + query, base64data) 
+                          setScanResult({ name: "name:" + query, image: base64data })
                      }
                  } else {
                      addLog("No se detectó nada legible.")
-                     // Pass image anyway?
-                     onScan("name:Objeto desconocido", base64data)
+                     setScanResult({ name: "name:Objeto desconocido", image: base64data })
                  }
                  setIsProcessingImg(false)
-                 isProcessingRef.current = false
+                 // Do NOT unlock isProcessingRef here. Unlock it only when user Closes Review or Confirms.
              }
           }, 'image/jpeg', 0.8)
        }
@@ -224,7 +222,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         console.error(e)
         addLog("Error visual scan: " + (e?.message || e))
         setIsProcessingImg(false)
-        isProcessingRef.current = false
+        isProcessingRef.current = false // Unlock on Error
       }
   }
 
@@ -298,11 +296,53 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                    className="rounded-full h-16 w-16 bg-white border-4 border-stone-300 shadow-xl flex items-center justify-center hover:bg-gray-100"
                  >
                     {isProcessingImg ? <div className="animate-spin text-black">⌛</div> : <Camera className="h-8 w-8 text-black" />}
+                     {isProcessingImg ? <div className="animate-spin text-black">⌛</div> : <Camera className="h-8 w-8 text-black" />}
                  </Button>
                  <p className="absolute -bottom-6 text-xs text-white/80 font-medium drop-shadow-md">
                     {isProcessingImg ? "Analizando..." : "Lens Scan"}
                  </p>
             </div>
+         )}
+
+         {/* Review Overlay (AI Results) */}
+         {scanResult && (
+             <div className="absolute inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-200">
+                 <h2 className="text-white text-xl font-bold mb-4">Resultado del Análisis</h2>
+                 
+                 <div className="relative w-full aspect-square max-w-sm rounded-xl overflow-hidden border border-white/20 mb-6 bg-stone-900">
+                    <img src={scanResult.image} alt="Captured" className="w-full h-full object-cover" />
+                 </div>
+                 
+                 <div className="w-full max-w-sm mb-8">
+                     <p className="text-stone-400 text-xs uppercase tracking-wider mb-1">Detectado:</p>
+                     <div className="bg-stone-800 p-4 rounded-lg border border-stone-700">
+                        <p className="text-white text-lg font-medium leading-tight">
+                            {scanResult.name.replace('name:', '').replace('text:', '')}
+                        </p>
+                     </div>
+                 </div>
+                 
+                 <div className="flex gap-4 w-full max-w-sm">
+                     <Button 
+                       variant="outline" 
+                       className="flex-1 h-14 bg-stone-800 text-white border-stone-700 hover:bg-stone-700 hover:text-white"
+                       onClick={() => {
+                           setScanResult(null)
+                           isProcessingRef.current = false // Unlock
+                       }}
+                     >
+                        Reintentar
+                     </Button>
+                     <Button 
+                       className="flex-1 h-14 bg-white text-black hover:bg-gray-100 font-bold"
+                       onClick={() => {
+                           onScan(scanResult.name, scanResult.image)
+                       }}
+                     >
+                        Usar Resultado
+                     </Button>
+                 </div>
+             </div>
          )}
        </div>
        
