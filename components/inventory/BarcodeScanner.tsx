@@ -20,36 +20,31 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [error, setError] = useState<string | null>(null)
   const [initStatus, setInitStatus] = useState("Iniciando cámara...")
   
-  // Logic to start scanner
+  // Debug logs
+  const [logs, setLogs] = useState<string[]>([])
+  const addLog = (msg: string) => setLogs(prev => [...prev.slice(-4), msg])
+
   const startScanner = async () => {
       if (isScanning) return
-      setInitStatus("Solicitando permisos...")
+      setInitStatus("Iniciando...")
       setError(null)
+      addLog("Start initiated...")
       
       try {
         const formattedId = "reader"
         
-        // 1. Check cameras
-        try {
-           const devices = await Html5Qrcode.getCameras()
-           if (!devices || devices.length === 0) {
-              throw new Error("No se encontraron cámaras.")
-           }
-        } catch (e: any) {
-           throw new Error("No se detectó ninguna cámara. " + e.message)
-        }
-
-        // 2. Cleanup previous instance
+        // 1. Initialize
+        addLog("Creating instance...")
         if (scannerRef.current) {
              try { await scannerRef.current.stop() } catch (e) {}
              scannerRef.current = null
         }
-        
-        // 3. Initialize
         const html5QrCode = new Html5Qrcode(formattedId)
         scannerRef.current = html5QrCode
 
-        // 4. Start
+        // 2. Start directly (skip getCameras to avoid permission race conditions/bugs)
+        addLog("Calling start() with native constraints...")
+        
         await html5QrCode.start(
             { facingMode: "environment" },
             { 
@@ -60,15 +55,20 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             (decodedText) => {
                onScan(decodedText)
             },
-            () => { /* ignore parse errors */ }
+            (err) => { 
+                // ignore parse errors, too noisy
+            }
         )
         
-        setInitStatus("")
+        addLog("Camera started successfully!")
         setIsScanning(true)
+        setInitStatus("")
 
       } catch (err: any) {
+        const msg = err?.message || JSON.stringify(err)
+        addLog("Error: " + msg)
         console.error("Camera start error:", err)
-        setError(err?.message || "Error al iniciar la cámara.")
+        setError(msg)
         setInitStatus("")
         setIsScanning(false)
       }
@@ -77,11 +77,14 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   // Auto-start effort on mount
   useEffect(() => {
      let mounted = true
+     addLog("Component mounted")
      
-     // Small delay to ensure DOM is ready
      const timer = setTimeout(() => {
-        if (mounted) startScanner()
-     }, 300)
+        if (mounted) {
+            addLog("Auto-starting...")
+            startScanner()
+        }
+     }, 500)
      
      return () => {
          mounted = false
@@ -101,7 +104,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         });
         setTorchOn(!torchOn)
      } catch (err) {
-        console.error("Torch not supported", err)
+        addLog("Torch error: " + err)
      }
   }
 
@@ -110,12 +113,17 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
        <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
          <div id="reader" className="w-full h-full max-w-lg mx-auto bg-black"></div>
          
-         {/* Overlays */}
+         {/* Debug Overlay (Tiny) */}
+         <div className="absolute bottom-20 left-4 right-4 pointer-events-none z-40 opacity-70">
+            {logs.map((l, i) => <p key={i} className="text-[10px] text-green-400 font-mono bg-black/50 p-1 mb-1">{l}</p>)}
+         </div>
+
+         {/* Start Button / Status Overlay */}
          {!isScanning && (
              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 text-white p-6 text-center">
                  {error ? (
                     <>
-                        <p className="text-red-400 font-bold mb-2">Error de Cámara</p>
+                        <p className="text-red-400 font-bold mb-2">Error</p>
                         <p className="text-sm mb-6 max-w-xs">{error}</p>
                         <div className="flex gap-4">
                             <Button onClick={startScanner} variant="outline" className="text-black bg-white hover:bg-white/90">Reintentar</Button>
@@ -127,7 +135,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                         <Camera className="w-12 h-12 mx-auto mb-4 text-stone-400" />
                         <p className="mb-4 text-stone-300">{initStatus}</p>
                         <Button onClick={startScanner} className="mt-4 bg-primary text-primary-foreground">
-                           Iniciar Cámara
+                           Activar Cámara
                         </Button>
                     </div>
                  )}
