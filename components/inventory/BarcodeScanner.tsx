@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { X, Camera, Zap, ZapOff } from 'lucide-react'
 
 interface BarcodeScannerProps {
-  onScan: (decodedText: string) => void
+  onScan: (decodedText: string, imageData?: string) => void
   onClose: () => void
   onCapture?: (imageBlob: Blob) => void // Kept for interface compatibility but not implemented
 }
@@ -124,47 +124,45 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
           
           addLog("Capturing frame for OCR...")
           
-          canvas.toBlob(async (blob) => {
+           canvas.toBlob(async (blob) => {
              if (!blob) {
                  setIsProcessingImg(false)
                  return
              }
              
-             // Dynamic import to avoid SSR issues with Tesseract
-             const { OCRService } = await import('@/lib/ocrService')
-             const { ProductService } = await import('@/lib/productService')
-             
-             addLog("Reading text...")
-             const text = await OCRService.recognizeText(blob)
-             
-             if (text) {
-                 addLog("Found: " + text.substring(0, 20) + "...")
-                 // Optional: Ask user to confirm or just search?
-                 // Let's search directly
-                 const results = await ProductService.searchProductByName(text)
-                 if (results && results.length > 0) {
-                      addLog("Product found via OCR!")
-                      // Use the first result's name to "scan"
-                      // Simulate a scan success
-                      onScan(results[0].name) // Passing name as code is tricky for the listener?
-                      // The listener expects a barcode usually.
-                      // But in app/scan/page.tsx, we do: router.push(...?barcode=code)
-                      // If we pass a name, valid? 
-                      // AddItemForm logic: if (initialBarcode) -> searchProductByBarcode(initialBarcode)
-                      // If 'initialBarcode' is not a barcode, searchProductByBarcode returns null (usually).
-                      
-                      // CRITICAL: We need a way to pass "Found Product Data" directly or pass the Name as a search term.
-                      // Hack: Pass a special prefix "name:QUERY"
-                      onScan("name:" + results[0].name)
+             // Convert blob to base64 for passing
+             const reader = new FileReader();
+             reader.readAsDataURL(blob);
+             reader.onloadend = async () => {
+                 const base64data = reader.result as string;
+                 
+                 // Dynamic import
+                 const { OCRService } = await import('@/lib/ocrService')
+                 const { ProductService } = await import('@/lib/productService')
+                 
+                 addLog("Reading text...")
+                 const text = await OCRService.recognizeText(blob)
+                 
+                 if (text) {
+                     addLog("Found: " + text.substring(0, 20) + "...")
+                     const results = await ProductService.searchProductByName(text)
+                     
+                     if (results && results.length > 0) {
+                          addLog("Product found via OCR!")
+                          // Pass result with image
+                          onScan("name:" + results[0].name, base64data)
+                     } else {
+                          addLog("Text found but no product match.")
+                          // Pass text with captured image
+                          onScan("text:" + text, base64data)
+                     }
                  } else {
-                      addLog("Text found but no product match.")
-                      // If no product match, we can still pass the text to fill the name!
-                      onScan("text:" + text)
+                     addLog("No readable text found.")
+                     // Still pass image? Maybe useful?
+                     // onScan("image_only", base64data) 
                  }
-             } else {
-                 addLog("No readable text found.")
+                 setIsProcessingImg(false)
              }
-             setIsProcessingImg(false)
           }, 'image/jpeg', 0.8)
        }
       } catch (e: any) {

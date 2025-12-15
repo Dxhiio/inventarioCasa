@@ -68,10 +68,38 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
           const nameQuery = code.substring(5)
           console.log("Lens Scan Name:", nameQuery)
           setName(nameQuery)
+          
+          // Check for passed image
+          const cachedImg = sessionStorage.getItem('scanned_image_temp')
+          if (cachedImg) {
+             setPreviewUrl(cachedImg)
+             // Convert base64 to File for upload
+             try {
+                const res = await fetch(cachedImg)
+                const blob = await res.blob()
+                const file = new File([blob], "lens_capture.jpg", { type: "image/jpeg" })
+                setImageFile(file)
+             } catch (e) { console.error("Error converting cached img", e) }
+             sessionStorage.removeItem('scanned_image_temp') // Cleanup
+          }
+
       } else if (code.startsWith('text:')) {
           const rawText = code.substring(5)
           console.log("Lens Scan Text:", rawText)
           setName(rawText)
+          
+           // Check for passed image
+          const cachedImg = sessionStorage.getItem('scanned_image_temp')
+          if (cachedImg) {
+             setPreviewUrl(cachedImg)
+             try {
+                const res = await fetch(cachedImg)
+                const blob = await res.blob()
+                const file = new File([blob], "lens_capture.jpg", { type: "image/jpeg" })
+                setImageFile(file)
+             } catch (e) { console.error("Error converting cached img", e) }
+             sessionStorage.removeItem('scanned_image_temp')
+          }
       } else {
           // Barcode Logic
           // If code is numeric and short/long, treat as barcode.
