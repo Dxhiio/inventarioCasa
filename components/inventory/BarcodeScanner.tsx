@@ -296,7 +296,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                    className="rounded-full h-16 w-16 bg-white border-4 border-stone-300 shadow-xl flex items-center justify-center hover:bg-gray-100"
                  >
                     {isProcessingImg ? <div className="animate-spin text-black">⌛</div> : <Camera className="h-8 w-8 text-black" />}
-                     {isProcessingImg ? <div className="animate-spin text-black">⌛</div> : <Camera className="h-8 w-8 text-black" />}
+
                  </Button>
                  <p className="absolute -bottom-6 text-xs text-white/80 font-medium drop-shadow-md">
                     {isProcessingImg ? "Analizando..." : "Lens Scan"}
