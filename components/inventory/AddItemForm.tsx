@@ -63,28 +63,30 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
     setShowScanner(false)
     setLoading(true)
     try {
-      // Check for special prefixes from Visual Scan
+      // Lens Scan / Text Logic
       if (code.startsWith('name:')) {
           const nameQuery = code.substring(5)
-          setName(nameQuery) // Pre-fill name immediately? or search more?
-          // We already searched in scanner, but we can do a better search here if needed
-          // For now, assume the scanner found a good name match or use it as is
-          // Ideally we should have passed the whole object, but URL/String limits apply.
-          // Let's just set the name.
+          console.log("Lens Scan Name:", nameQuery)
+          setName(nameQuery)
       } else if (code.startsWith('text:')) {
           const rawText = code.substring(5)
+          console.log("Lens Scan Text:", rawText)
           setName(rawText)
-          alert(`Texto detectado: "${rawText}". No se encontraron productos exactos, pero puedes editar el nombre.`)
       } else {
-          // Standard Barcode Lookup
-          const product = await ProductService.searchProductByBarcode(code)
-          if (product) {
-            setName(product.name)
-            if (product.image_url) {
-               setPreviewUrl(product.image_url)
-            }
+          // Barcode Logic
+          // If code is numeric and short/long, treat as barcode.
+          // If it's just arbitrary, maybe fallback to name?
+          if (/^\d+$/.test(code) && code.length > 3) {
+             const product = await ProductService.searchProductByBarcode(code)
+             if (product) {
+               setName(product.name)
+               if (product.image_url) setPreviewUrl(product.image_url)
+             } else {
+               alert(`Producto no encontrado (Barcode: ${code})`)
+             }
           } else {
-            alert(`Producto no encontrado en la base de datos pública (Código: ${code})`)
+             // Fallback for weird codes -> Treat as name
+             setName(code)
           }
       }
     } catch (e) {

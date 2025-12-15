@@ -242,7 +242,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                     {isProcessingImg ? <div className="animate-spin text-black">⌛</div> : <Camera className="h-8 w-8 text-black" />}
                  </Button>
                  <p className="absolute -bottom-6 text-xs text-white/80 font-medium drop-shadow-md">
-                    {isProcessingImg ? "Analizando..." : "Foto / OCR"}
+                    {isProcessingImg ? "Analizando..." : "Lens Scan"}
                  </p>
             </div>
          )}

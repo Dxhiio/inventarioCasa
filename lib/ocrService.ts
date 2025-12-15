@@ -3,7 +3,10 @@ import { createWorker } from 'tesseract.js';
 export const OCRService = {
   async recognizeText(imageBlob: Blob): Promise<string | null> {
     try {
-      const worker = await createWorker('spa'); // Spanish optimized
+      const worker = await createWorker('spa', 1, {
+        logger: m => console.log(m), // Add logging
+        errorHandler: e => console.error(e),
+      });
       
       // Convert blob to base64 or URL
       const imageUrl = URL.createObjectURL(imageBlob);
