@@ -36,6 +36,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         
         // 1. Initialize
         addLog("Creating instance...")
+        if (!document.getElementById(formattedId)) {
+             throw new Error("Scanner container not found in DOM")
+        }
+
         if (scannerRef.current) {
              try { await scannerRef.current.stop() } catch (e) {}
              scannerRef.current = null
@@ -163,11 +167,11 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
              setIsProcessingImg(false)
           }, 'image/jpeg', 0.8)
        }
-     } catch (e) {
+      } catch (e: any) {
         console.error(e)
-        addLog("Error visual scan: " + e)
+        addLog("Error visual scan: " + (e?.message || e))
         setIsProcessingImg(false)
-     }
+      }
   }
 
   const toggleTorch = async () => {
