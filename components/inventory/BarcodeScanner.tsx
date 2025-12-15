@@ -153,28 +153,57 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
                  
                  // Dynamic import
                  const { OCRService } = await import('@/lib/ocrService')
+                 const { VisualService } = await import('@/lib/visualService') // [NEW]
                  const { ProductService } = await import('@/lib/productService')
                  
-                 addLog("Reading text...")
-                 const text = await OCRService.recognizeText(blob)
+                 addLog("Analizando imagen (IA)...") // "Analyzing image (AI)..."
                  
-                 if (text) {
-                     addLog("Found: " + text.substring(0, 20) + "...")
-                     const results = await ProductService.searchProductByName(text)
+                 // Run Parallel: Text + Objects
+                 const [text, tags] = await Promise.all([
+                    OCRService.recognizeText(blob),
+                    VisualService.classifyImage(blob)
+                 ])
+                 
+                 const tagString = tags && tags.length > 0 ? tags.join(" ") : ""
+                 addLog(`Obj: ${tagString || 'N/A'} | Txt: ${text ? text.substring(0,10)+'...' : 'N/A'}`)
+                 
+                 // Construct Search Query
+                 // Priority: "Object Label + Text"
+                 let query = ""
+                 if (tagString && text) query = `${tagString} ${text}`
+                 else if (text) query = text
+                 else if (tagString) query = tagString
+                 
+                 if (query) {
+                     // Translate known tags to Spanish? (Optional enhancement)
+                     // For now, allow english tags, OpenFoodFacts search handles it decently.
+                     
+                     addLog(`Buscando: "${query}"`)
+                     const results = await ProductService.searchProductByName(query)
                      
                      if (results && results.length > 0) {
-                          addLog("Product found via OCR!")
-                          // Pass result with image
+                          addLog("Producto encontrado!")
                           onScan("name:" + results[0].name, base64data)
                      } else {
-                          addLog("Text found but no product match.")
-                          // Pass text with captured image
-                          onScan("text:" + text, base64data)
+                          // Try searching just text if combined failed?
+                          if (text && tagString) {
+                              addLog("Reintentando solo texto...")
+                              const textResults = await ProductService.searchProductByName(text)
+                              if (textResults && textResults.length > 0) {
+                                  onScan("name:" + textResults[0].name, base64data)
+                                  setIsProcessingImg(false)
+                                  return
+                              }
+                          }
+
+                          addLog("No match. Usando datos crudos.")
+                          // Ensure we pass the constructed query as the name so user sees "Mouse Perfect Choice"
+                          onScan("name:" + query, base64data) 
                      }
                  } else {
-                     addLog("No readable text found.")
-                     // Still pass image? Maybe useful?
-                     // onScan("image_only", base64data) 
+                     addLog("No se detectó nada legible.")
+                     // Pass image anyway?
+                     onScan("name:Objeto desconocido", base64data)
                  }
                  setIsProcessingImg(false)
              }
