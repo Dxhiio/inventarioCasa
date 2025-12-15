@@ -13,6 +13,7 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
+  const uniqueId = useRef(`reader-${Math.random().toString(36).slice(2)}`).current
   
   // State
   const [isScanning, setIsScanning] = useState(false)
@@ -28,10 +29,10 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       if (isScanning) return
       setInitStatus("Iniciando...")
       setError(null)
-      addLog("Start initiated...")
+      addLog("Start initiated (" + uniqueId + ")...")
       
       try {
-        const formattedId = "reader"
+        const formattedId = uniqueId
         
         // 1. Initialize
         addLog("Creating instance...")
@@ -109,9 +110,9 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col">
        <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
-         <div id="reader" className="w-full h-full max-w-lg mx-auto bg-black"></div>
+         <div id={uniqueId} className="w-full h-full max-w-lg mx-auto bg-black"></div>
          
          {/* Debug Overlay (Tiny) */}
          <div className="absolute bottom-20 left-4 right-4 pointer-events-none z-40 opacity-70">
