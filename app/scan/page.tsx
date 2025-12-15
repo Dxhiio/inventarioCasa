@@ -11,8 +11,8 @@ export default function ScanPage() {
     if (imageData) {
        sessionStorage.setItem('scanned_image_temp', imageData)
     }
-    // Redirect to add item page with the scanned barcode/code
-    router.push(`/inventory/add?barcode=${encodeURIComponent(code)}`)
+    // Redirect to add item page with the scanned barcode/code and timestamp to force refresh
+    router.push(`/inventory/add?barcode=${encodeURIComponent(code)}&t=${Date.now()}`)
   }
 
   const handleClose = () => {

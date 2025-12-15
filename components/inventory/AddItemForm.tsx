@@ -54,7 +54,7 @@ export function AddItemForm({ initialData }: AddItemFormProps) {
     if (initialBarcode) {
       handleScan(initialBarcode)
     }
-  }, [initialBarcode])
+  }, [initialBarcode, searchParams])
   const supabase = createClient()
 
   // ... (handleImageChange and handleCreateAuxiliaryData remain same)
