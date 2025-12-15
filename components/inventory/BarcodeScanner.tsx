@@ -126,29 +126,36 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
        isProcessingRef.current = true // Block normal scans
        
        // Robust Video Selector
-       // html5-qrcode typically appends a <video> element inside the container ID
-       let video = document.getElementById(uniqueId)?.querySelector("video") as HTMLVideoElement
-       
-       // Fallback: If not found immediately inside, try looking for any video in standard html5-qrcode classes?
+       // Find the video element that actually has dimensions (is playing)
+       const videos = Array.from(document.querySelectorAll("video"));
+       let video = videos.find(v => v.videoWidth > 0 && !v.ended) as HTMLVideoElement;
+
        if (!video) {
-           // Maybe the library wraps it in other divs
-           const container = document.getElementById(uniqueId)
-           if (container) {
-               const videos = container.getElementsByTagName("video")
-               if (videos.length > 0) video = videos[0]
-           }
+           addLog("Error: No video signal found")
+           console.error("No active video element found among", videos.length, "candidates")
+           setIsProcessingImg(false)
+           isProcessingRef.current = false
+           return
        }
 
        if (video) {
+          addLog(`Capturando: ${video.videoWidth}x${video.videoHeight}`)
+          
           const canvas = document.createElement("canvas")
           canvas.width = video.videoWidth
           canvas.height = video.videoHeight
           const ctx = canvas.getContext("2d")
           ctx?.drawImage(video, 0, 0)
           
-          addLog("Capturing frame for OCR...")
-          
            canvas.toBlob(async (blob) => {
+             if (!blob || blob.size < 1000) {
+                 addLog("Error: Imagen vacía/corrupra")
+                 console.error("Blob too small:", blob?.size)
+                 setIsProcessingImg(false)
+                 isProcessingRef.current = false
+                 return
+             }
+             addLog(`Blob: ${(blob.size / 1024).toFixed(1)} KB`)
              if (!blob) {
                  setIsProcessingImg(false)
                  isProcessingRef.current = false
