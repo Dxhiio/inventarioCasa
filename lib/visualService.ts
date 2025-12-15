@@ -33,8 +33,8 @@ class VisualServiceClass {
       console.log("Visual Config:", output);
 
       return output
-        .filter((res: any) => res.score > 0.1) // Filter low confidence (lowered to 10%)
-        .map((res: any) => res.label.split(',')[0]) // Take first synonym
+        //.filter((res: any) => res.score > 0.1) // REMOVED FILTER for debugging
+        .map((res: any) => `${res.label.split(',')[0]} (${(res.score*100).toFixed(0)}%)`) // Include score in label for debug
         .slice(0, 5); // Top 5 tags
         
     } catch (error) {
